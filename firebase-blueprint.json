@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A student or user of the platform.",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string", "description": "The unique username of the user." },
+        "id": { "type": "string", "description": "The unique ID of the user." },
+        "completedAlgorithms": { "type": "array", "items": { "type": "string" }, "description": "List of completed algorithm IDs." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user was created." }
+      },
+      "required": ["username", "id", "createdAt"]
+    },
+    "Query": {
+      "title": "Query",
+      "description": "A query or question posted by a user.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the query." },
+        "content": { "type": "string", "description": "The detailed content of the query." },
+        "category": { "type": "string", "description": "The algorithm category of the query." },
+        "author": { "type": "string", "description": "The username of the author." },
+        "authorId": { "type": "string", "description": "The ID of the author." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the query was posted." },
+        "votes": { "type": "integer", "description": "The total vote count." },
+        "voters": { "type": "object", "description": "A map of user IDs to their vote (1 or -1)." },
+        "attachments": { "type": "array", "items": { "type": "object" }, "description": "List of file attachments." }
+      },
+      "required": ["title", "content", "category", "author", "authorId", "createdAt", "votes", "voters"]
+    },
+    "Answer": {
+      "title": "Answer",
+      "description": "An answer to a query.",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string", "description": "The content of the answer." },
+        "author": { "type": "string", "description": "The username of the author." },
+        "authorId": { "type": "string", "description": "The ID of the author." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the answer was posted." },
+        "votes": { "type": "integer", "description": "The total vote count." },
+        "voters": { "type": "object", "description": "A map of user IDs to their vote (1 or -1)." },
+        "isBest": { "type": "boolean", "description": "Whether this is the best solution." }
+      },
+      "required": ["content", "author", "authorId", "createdAt", "votes", "voters", "isBest"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "The collection of users."
+    },
+    "/queries/{queryId}": {
+      "schema": "Query",
+      "description": "The collection of queries."
+    },
+    "/queries/{queryId}/answers/{answerId}": {
+      "schema": "Answer",
+      "description": "The subcollection of answers for a query."
+    }
+  }
+}

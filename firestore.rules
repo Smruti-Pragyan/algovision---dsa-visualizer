@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields:
+    //   - username: string (required)
+    //   - id: string (required)
+    //   - createdAt: timestamp (required)
+    //   - completedAlgorithms: list (optional)
+    //
+    // Collection: queries
+    // Fields:
+    //   - title: string (required, < 100 chars)
+    //   - content: string (required, < 5000 chars)
+    //   - author: string (required)
+    //   - authorId: string (required)
+    //   - createdAt: timestamp (required)
+    //   - votes: number (required)
+    //   - voters: map (required)
+    //
+    // Subcollection: queries/{queryId}/answers
+    // Fields:
+    //   - content: string (required, < 5000 chars)
+    //   - author: string (required)
+    //   - authorId: string (required)
+    //   - createdAt: timestamp (required)
+    //   - votes: number (required)
+    //   - voters: map (required)
+    //   - isBest: bool (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          (request.auth.token.email == "smruti1.pragyan@gmail.com" && request.auth.token.email_verified == true)
+        );
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['username', 'id', 'createdAt', 'role', 'completedAlgorithms', 'email', 'displayName', 'photoURL', 'uid']) &&
+             data.username is string && data.username.size() > 0 && data.username.size() < 50 &&
+             data.id is string && data.createdAt is timestamp &&
+             (!('completedAlgorithms' in data) || data.completedAlgorithms is list);
+    }
+
+    function isValidQuery(data) {
+      return hasOnlyAllowedFields(['title', 'content', 'category', 'author', 'authorId', 'createdAt', 'votes', 'voters', 'attachments']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
+             data.category is string && data.category.size() > 0 &&
+             data.author is string && data.authorId is string &&
+             data.createdAt is timestamp && data.votes is number && data.voters is map &&
+             (!('attachments' in data) || data.attachments is list);
+    }
+
+    function isValidAnswer(data) {
+      return hasOnlyAllowedFields(['content', 'author', 'authorId', 'createdAt', 'votes', 'voters', 'isBest']) &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
+             data.author is string && data.authorId is string &&
+             data.createdAt is timestamp && data.votes is number && data.voters is map && data.isBest is bool;
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    // Collection group rules for answers (MUST be accessible for collectionGroup queries)
+    match /{path=**}/answers/{answerId} {
+      allow read: if true;
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role) || isAdmin();
+    }
+
+    match /queries/{queryId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidQuery(request.resource.data) && request.resource.data.authorId == request.auth.uid && request.resource.data.votes == 0;
+      allow update: if isAuthenticated() && (
+        // Author can update content/title
+        (request.auth.uid == resource.data.authorId && isValidQuery(request.resource.data) && request.resource.data.votes == resource.data.votes) ||
+        // Anyone can vote
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'voters']) && 
+         math.abs(request.resource.data.votes - resource.data.votes) <= 1) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.authorId);
+
+      match /answers/{answerId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidAnswer(request.resource.data) && request.resource.data.authorId == request.auth.uid && request.resource.data.votes == 0 && request.resource.data.isBest == false;
+        allow update: if isAuthenticated() && (
+          // Author can update content
+          (request.auth.uid == resource.data.authorId && isValidAnswer(request.resource.data) && request.resource.data.votes == resource.data.votes && request.resource.data.isBest == resource.data.isBest) ||
+          // Anyone can vote
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'voters']) && 
+           math.abs(request.resource.data.votes - resource.data.votes) <= 1) ||
+          // Query author can mark best
+          (request.auth.uid == get(/databases/$(database)/documents/queries/$(queryId)).data.authorId && 
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isBest'])) ||
+          isAdmin()
+        );
+        allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.authorId);
+      }
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated(); // Simplified for debugging
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.recipientId == request.auth.uid 
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+    }
+
+    match /reports/{reportId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
