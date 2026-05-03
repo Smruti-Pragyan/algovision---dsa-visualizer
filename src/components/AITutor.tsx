@@ -15,10 +15,7 @@ import {
   Check,
   RotateCcw
 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 import Markdown from 'react-markdown';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 const BOT_ICON_URL = "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=AlgoVision&backgroundColor=636b2f"; // Brand-aligned bot icon
 
@@ -67,7 +64,6 @@ export default function AITutor() {
     setIsLoading(true);
 
     try {
-      const model = "gemini-3-flash-preview";
       const prompt = `You are a friendly and expert DSA tutor for the AlgoVision platform. 
       Your goal is to help students master Data Structures and Algorithms.
       
@@ -79,14 +75,24 @@ export default function AITutor() {
       
       User Question: ${messageText}`;
 
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
+      // Call the backend API instead of using the Google SDK directly
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: prompt })
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Network response was not ok');
+      }
 
       const botMessage: Message = {
         role: 'bot',
-        content: response.text || "I'm sorry, I couldn't process that. Could you try rephrasing?",
+        content: data.reply || "I'm sorry, I couldn't process that. Could you try rephrasing?",
         timestamp: new Date()
       };
 
