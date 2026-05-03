@@ -1,20 +1,35 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+🚀 AlgoVision — Interactive DSA Visualizer
 
-# Run and deploy your AI Studio app
+AlgoVision is an interactive web-based platform designed to visualize Data Structures and Algorithms in a simple, engaging, and intuitive way.
+It transforms complex logic into beautiful animations, making learning DSA more fun and effective.
 
-This contains everything you need to run your app locally.
+🎯 Problem It Solves
 
-View your app in AI Studio: https://ai.studio/apps/a3cf15ac-912d-4442-b13b-52adebb14caa
+Understanding DSA through code alone can feel abstract and confusing.
+AlgoVision bridges this gap by:
 
-## Run Locally
+Turning algorithms into step-by-step visual animations
+Helping users see how data changes in real-time
+Making learning more interactive and less intimidating
 
-**Prerequisites:**  Node.js
+✨ Features
 
+🎬 Algorithm Visualization
+Watch algorithms execute step-by-step
+🎮 Interactive Controls
+Play, pause, and control speed of execution
+📊 Dynamic Data Representation
+Visualize arrays, bars, and structures in real-time
+🧠 Beginner-Friendly UI
+Clean and intuitive interface for better understanding
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+🚀 Getting Started
+
+1️⃣ Clone the repository
+git clone https://github.com/Smruti-Pragyan/AlgoVision---DSA-Visualizer.git
+2️⃣ Navigate into the project
+cd AlgoVision---DSA-Visualizer
+3️⃣ Install dependencies
+npm install
+4️⃣ Run the project
+npm run dev
